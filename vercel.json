@@ -1,21 +1,8 @@
 {
-  "functions": {
-    "main.py": {
-      "runtime": "python3.11"
-    }
-  },
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "routes": [
-    {
-      "src": "/api/vehicle-info",
-      "dest": "/main.py"
-    },
-    {
-      "src": "/health",
-      "dest": "/main.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/main.py"
-    }
+    { "src": "/vehicle-info", "dest": "main.py" },
+    { "src": "/health", "dest": "main.py" },
+    { "src": "/(.*)", "dest": "main.py" }
   ]
 }
