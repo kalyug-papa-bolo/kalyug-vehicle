@@ -1,16 +1,15 @@
-# app.py
-# Single-file Flask app with a stylish landing page + API.
-# Every API response includes {"powered_by": "Kalyug"}.
+# api/main.py
+# Single-file Flask app (Landing page + API) for Vercel.
+# Every response includes {"powered_by": "Kalyug"}.
 import os, re, time, requests
 from urllib.parse import quote
 from flask import Flask, request, jsonify, make_response
-
 from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 BRAND = os.getenv("BRAND", "Kalyug")
 
-# --------- HTML (inline stylish landing page) ----------
+# ---------- Stylish Landing Page (inline) ----------
 INDEX_HTML = """<!doctype html>
 <html lang="en">
 <head>
@@ -79,9 +78,9 @@ INDEX_HTML = """<!doctype html>
 </body>
 </html>"""
 
-# ---------- Lightweight scraper helpers (serverless-safe) ----------
+# ---------- Scraper helpers ----------
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Mobile Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5)",
     "Referer": "https://vahanx.in/",
     "Accept-Language": "en-US,en;q=0.9"
 }
@@ -105,14 +104,14 @@ def _section_dict(soup, header_contains, keys):
             span = card.find("span", string=lambda s: s and k.lower() in s.lower()) if card else None
             p = span.find_next("p") if span else None
             if p: out[k.lower().replace(" ", "_")] = p.get_text(strip=True)
-        except Exception:
+        except:
             pass
     return out
 
 def get_vehicle_details(rc_number: str):
-    """Fetch and parse details for a given RC number from public web page."""
     rc = rc_number.strip().upper()
     url = f"https://vahanx.in/rc-search/{quote(rc)}"
+
     try:
         r = requests.get(url, headers=HEADERS, timeout=10)
         r.raise_for_status()
@@ -214,7 +213,7 @@ def get_vehicle_details(rc_number: str):
     }
     return clean(data)
 
-# ------------------- Routes -------------------
+# ---------- Routes ----------
 @app.get("/")
 def landing():
     resp = make_response(INDEX_HTML, 200)
@@ -229,14 +228,12 @@ def health():
 def vehicle_info():
     rc = request.args.get("rc", "").strip()
     if not rc:
-        return jsonify({"error": "Missing rc parameter", "usage": "/api/vehicle-info?rc=<RC_NUMBER>", "powered_by": BRAND}), 400
+        return jsonify({
+            "error": "Missing rc parameter",
+            "usage": "/api/vehicle-info?rc=<RC_NUMBER>",
+            "powered_by": BRAND
+        }), 400
     data = get_vehicle_details(rc)
-    # ensure brand tag even on errors
-    if isinstance(data, dict) and "powered_by" not in data:
+    if "powered_by" not in data:
         data["powered_by"] = BRAND
     return jsonify(data)
-
-# Note: Do NOT call app.run() — lets Vercel/WSGI host run it.
-# If you want local testing, uncomment below:
-# if __name__ == "__main__":
-#     app.run(host="0.0.0.0", port=3000, debug=True)
